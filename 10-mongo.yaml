@@ -1,0 +1,81 @@
+# MongoDB (single instance) + PVC + Service + NetworkPolicy
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: genieacs-mongo-pvc
+  namespace: genieacs
+spec:
+  accessModes: ["ReadWriteOnce"]
+  #STORAGECLASS
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: genieacs-mongo
+  namespace: genieacs
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: genieacs-mongo }
+  template:
+    metadata:
+      labels: { app: genieacs-mongo }
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:6
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_DATABASE
+              value: genieacs
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+          readinessProbe:
+            tcpSocket: { port: 27017 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: 27017 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - { name: mongo-data, mountPath: /data/db }
+      volumes:
+        - name: mongo-data
+          persistentVolumeClaim:
+            claimName: genieacs-mongo-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: genieacs-mongo
+  namespace: genieacs
+spec:
+  type: ClusterIP
+  selector: { app: genieacs-mongo }
+  ports:
+    - { port: 27017, targetPort: 27017 }
+---
+# (CNI NetworkPolicy)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: genieacs-mongo-allow-app-only
+  namespace: genieacs
+spec:
+  podSelector:
+    matchLabels: { app: genieacs-mongo }
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - { key: app, operator: In, values: [genieacs-server, genieacs-ui] }
+      ports:
+        - { protocol: TCP, port: 27017 }

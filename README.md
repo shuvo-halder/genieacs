@@ -1,6 +1,15 @@
 # GenieACS on Kubernetes
 
-Kubernetes manifests and a deploy script for running [GenieACS](https://genieacs.com/) (TR-069 ACS) with MongoDB, a horizontally scalable server tier, and a web UI.
+Production-ready Kubernetes manifests to deploy **GenieACS**, an open-source **TR-069 (CWMP) Auto Configuration Server (ACS)**, with MongoDB, a **horizontally autoscaling (HPA)** server tier and a web UI. Manage routers, ONTs and other CPE devices at scale.
+
+## Features
+
+- TR-069 / CWMP ACS with GenieACS 1.2.x
+- Horizontal Pod Autoscaler for the CWMP/NBI/File Server tier (3 to 20 replicas)
+- MongoDB with persistent volume and NetworkPolicy
+- NBI kept cluster-internal; stable NodePorts for CPE and UI access
+- One-command install with `deploy.sh`
+- Data migration with `mongodump` / `mongorestore`
 
 Repository: https://github.com/shuvo-halder/genieacs
 
